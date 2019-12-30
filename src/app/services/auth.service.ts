@@ -3,25 +3,25 @@ import {UserInfo} from '../types/userInfo';
 import {Observable} from 'rxjs';
 import {HttpClient} from '@angular/common/http';
 import {map} from 'rxjs/operators';
+import {SessionStorageService} from './session-storage.service';
 
 @Injectable()
 export class AuthService {
-  private redirectUrl = '';
-  private loginUrl = '/login';
+  private redirectUrl = '/home';
+  private loginUrl = '';
   private isloggedIn = false;
   private loggedInUser: UserInfo;
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private sessionStorageService: SessionStorageService) {}
   isUserAuthenticated(username: string, password: string): Observable<boolean> {
     return this.http.get<UserInfo[]>('assets/data/userDetails.json').pipe(
       map(users => {
-        debugger;
-        const user = 	'test';
+        const user =  users.find(usr => {
+          return usr.username === username && usr.password === password;
+        });
         if (user) {
           this.isloggedIn = true;
-          this.loggedInUser = {
-              username: 'krishna',
-              password: 'krishna'
-            };
+          this.sessionStorageService.setItem('userInfo', JSON.stringify(user));
+          this.loggedInUser = user;
         } else {
           this.isloggedIn = false;
         }
@@ -30,7 +30,11 @@ export class AuthService {
   );
   }
   isUserLoggedIn(): boolean {
-    return this.isloggedIn;
+    if (this.sessionStorageService.getItem('userInfo')) {
+      return true;
+    } else {
+      return this.isloggedIn;
+    }
   }
   getRedirectUrl(): string {
     return this.redirectUrl;
@@ -45,6 +49,7 @@ export class AuthService {
     return this.loggedInUser;
   }
   logoutUser(): void {
+    sessionStorage.removeItem('userInfo');
     this.isloggedIn = false;
   }
 }
